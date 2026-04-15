@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { templateCategories, templates } from '../data/templates'
+import { generatedTemplates, generatedCategories } from '../data/generatedTemplates'
 import { athletes } from '../data/athletes'
 import { generateImage } from '../lib/openrouter'
-import { Download, Send, User, Image as ImageIcon, Smartphone, Video, Undo, Redo } from 'lucide-react'
+import { Download, Send, User, Image as ImageIcon, Smartphone, Video, Undo, Redo, Sparkles, Archive } from 'lucide-react'
 
 type Format = 'feed' | 'story' | 'reel';
 
@@ -13,6 +14,7 @@ interface Message {
 }
 
 export default function Studio() {
+  const [mode, setMode] = useState<'generate' | 'gallery'>('gallery')
   const [selectedTemplate, setSelectedTemplate] = useState('')
   const [selectedAthlete, setSelectedAthlete] = useState('')
   const [selectedFormat, setSelectedFormat] = useState<Format>('feed')
@@ -120,22 +122,50 @@ export default function Studio() {
       <header className="flex items-center gap-4 px-6 h-16 border-b border-sa-green/20 bg-white/50 backdrop-blur">
         <h1 className="text-2xl font-bold text-sa-gold tracking-wider">TEAM SA STUDIO</h1>
         
-        <select
-          value={selectedTemplate}
-          onChange={(e) => setSelectedTemplate(e.target.value)}
-          className="px-4 py-2 border border-sa-green/30 rounded bg-white text-sm min-w-[250px]"
-        >
-          <option value="">Select template...</option>
-          {templateCategories.map(cat => (
-            <optgroup key={cat.category} label={cat.category}>
-              {cat.items.map(t => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        {/* Mode Toggle */}
+        <div className="flex gap-1 border border-sa-green/30 rounded overflow-hidden">
+          <button
+            onClick={() => setMode('gallery')}
+            className={`px-4 py-2 flex items-center gap-2 text-sm transition-colors ${
+              mode === 'gallery'
+                ? 'bg-sa-green text-white'
+                : 'bg-white text-sa-green hover:bg-sa-green/10'
+            }`}
+          >
+            <Archive size={16} />
+            Gallery
+          </button>
+          <button
+            onClick={() => setMode('generate')}
+            className={`px-4 py-2 flex items-center gap-2 text-sm transition-colors ${
+              mode === 'generate'
+                ? 'bg-sa-green text-white'
+                : 'bg-white text-sa-green hover:bg-sa-green/10'
+            }`}
+          >
+            <Sparkles size={16} />
+            Generate
+          </button>
+        </div>
         
-        {template?.athleteFields && (
+        {mode === 'generate' && (
+          <select
+            value={selectedTemplate}
+            onChange={(e) => setSelectedTemplate(e.target.value)}
+            className="px-4 py-2 border border-sa-green/30 rounded bg-white text-sm min-w-[250px]"
+          >
+            <option value="">Select template...</option>
+            {templateCategories.map(cat => (
+              <optgroup key={cat.category} label={cat.category}>
+                {cat.items.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        )}
+        
+        {mode === 'generate' && template?.athleteFields && (
           <select
             value={selectedAthlete}
             onChange={(e) => setSelectedAthlete(e.target.value)}
@@ -150,29 +180,31 @@ export default function Studio() {
           </select>
         )}
 
-        <div className="flex gap-1 ml-4 border border-sa-green/30 rounded overflow-hidden">
-          {Object.entries(formatConfig).map(([key, config]) => {
-            const Icon = config.icon
-            const isSelected = selectedFormat === key
-            return (
-              <button
-                key={key}
-                onClick={() => setSelectedFormat(key as Format)}
-                className={`px-3 py-2 flex items-center gap-1.5 text-xs transition-colors ${
-                  isSelected 
-                    ? 'bg-sa-green text-white' 
-                    : 'bg-white text-sa-green hover:bg-sa-green/10'
-                }`}
-                title={`${config.label} (${config.ratio})`}
-              >
-                <Icon size={14} />
-                {config.label}
-              </button>
-            )
-          })}
-        </div>
+        {mode === 'generate' && (
+          <div className="flex gap-1 ml-4 border border-sa-green/30 rounded overflow-hidden">
+            {Object.entries(formatConfig).map(([key, config]) => {
+              const Icon = config.icon
+              const isSelected = selectedFormat === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelectedFormat(key as Format)}
+                  className={`px-3 py-2 flex items-center gap-1.5 text-xs transition-colors ${
+                    isSelected 
+                      ? 'bg-sa-green text-white' 
+                      : 'bg-white text-sa-green hover:bg-sa-green/10'
+                  }`}
+                  title={`${config.label} (${config.ratio})`}
+                >
+                  <Icon size={14} />
+                  {config.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
-        {imageHistory.length > 0 && (
+        {mode === 'generate' && imageHistory.length > 0 && (
           <div className="flex items-center gap-1 ml-auto">
             <button
               onClick={handleUndo}
@@ -196,43 +228,88 @@ export default function Studio() {
           </div>
         )}
 
-        <div className="text-sm text-sa-green/60">
-          {templates.length} templates • {athletes.length} athletes
+        <div className="text-sm text-sa-green/60 ml-auto">
+          {mode === 'gallery' ? `${generatedTemplates.length} ready` : `${templates.length} templates • ${athletes.length} athletes`}
         </div>
       </header>
 
       {/* Main */}
       <div className="flex flex-1 min-h-0">
-        {/* Canvas */}
-        <div className="flex-[2] flex items-center justify-center p-8 border-r border-sa-green/20">
-          {currentImage ? (
-            <div className="relative">
-              <img
-                src={currentImage}
-                alt="Generated"
-                className="max-w-full max-h-full rounded-lg shadow-2xl"
-                style={{
-                  aspectRatio: selectedFormat === 'feed' ? '4/5' : '9/16'
-                }}
-              />
-              <button
-                onClick={handleDownload}
-                className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-sa-gold text-white rounded-lg hover:bg-sa-gold/90 shadow-lg"
-              >
-                <Download size={16} />
-                Download
-              </button>
+        {mode === 'gallery' ? (
+          /* Gallery Grid */
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-7xl mx-auto">
+              {generatedCategories.map(cat => (
+                <div key={cat.category} className="mb-8">
+                  <h2 className="text-lg font-bold text-sa-green mb-4 tracking-wide">{cat.category}</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {cat.items.map(item => (
+                      <div
+                        key={item.id}
+                        className="group relative bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer"
+                        onClick={() => {
+                          setCurrentImage(item.path)
+                          pushImage(item.path)
+                        }}
+                      >
+                        <img
+                          src={item.path}
+                          alt={item.name}
+                          className="w-full aspect-[4/5] object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute bottom-0 left-0 right-0 p-3">
+                            <p className="text-white text-sm font-bold">{item.name}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const a = document.createElement('a')
+                            a.href = item.path
+                            a.download = `team-sa-${item.id}.png`
+                            a.click()
+                          }}
+                          className="absolute top-2 right-2 p-2 bg-sa-gold text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-sa-gold/90"
+                        >
+                          <Download size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-          ) : (
-            <div className="text-center text-sa-green/40">
-              <p className="text-xl font-bold mb-2">NO IMAGE</p>
-              <p className="text-sm">Select template + format, then generate</p>
+          </div>
+        ) : (
+          <>
+            {/* Canvas */}
+            <div className="flex-[2] flex items-center justify-center p-8 border-r border-sa-green/20 overflow-hidden">
+              {currentImage ? (
+                <div className="relative max-w-full max-h-full flex items-center justify-center">
+                  <img
+                    src={currentImage}
+                    alt="Generated"
+                    className="max-w-full max-h-[calc(100vh-8rem)] w-auto h-auto rounded-lg shadow-2xl object-contain"
+                  />
+                  <button
+                    onClick={handleDownload}
+                    className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-sa-gold text-white rounded-lg hover:bg-sa-gold/90 shadow-lg"
+                  >
+                    <Download size={16} />
+                    Download
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center text-sa-green/40">
+                  <p className="text-xl font-bold mb-2">NO IMAGE</p>
+                  <p className="text-sm">Select template + format, then generate</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Chat + Controls */}
-        <div className="flex-1 flex flex-col bg-white/30">
+            {/* Chat + Controls */}
+            <div className="flex-1 flex flex-col bg-white/30">
           {/* Chat History */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 && (
@@ -327,8 +404,10 @@ export default function Studio() {
                 )}
               </button>
             </div>
-          </div>
-        </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

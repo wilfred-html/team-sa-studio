@@ -90,7 +90,8 @@ export default function Studio() {
         fullPrompt = `${fullPrompt}\n\nUser: ${prompt}`
       }
       
-      const imageUrl = await generateImage(fullPrompt)
+      const referenceImage = template.referenceImage;
+      const imageUrl = await generateImage(fullPrompt, referenceImage)
       pushImage(imageUrl)
       setMessages(prev => [...prev, { role: 'assistant', text: 'Generated!', image: imageUrl }])
     } catch (err) {

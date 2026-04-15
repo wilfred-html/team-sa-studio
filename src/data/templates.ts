@@ -4,13 +4,15 @@ export interface Template {
   category: string;
   description: string;
   prompt: string;
-  athleteFields?: string[]; // Fields that can be auto-filled from athlete data
+  athleteFields?: string[];
+  referenceImage?: string; // Fields that can be auto-filled from athlete data
 }
 
 export const templates: Template[] = [
   // NATIONAL MOMENTS (6)
   {
     id: 'countdown-100',
+    referenceImage: '/references/countdown-100.png',
     name: 'Countdown - 100 Days',
     category: 'National Moments',
     description: 'Major milestone countdown with dramatic typography',
@@ -32,6 +34,7 @@ export const templates: Template[] = [
   },
   {
     id: 'team-announcement',
+    referenceImage: '/references/team-announcement.png',
     name: 'Team Announcement Hero',
     category: 'National Moments',
     description: 'Squad reveal moment with celebration aesthetic',
@@ -55,6 +58,7 @@ export const templates: Template[] = [
   // ATHLETE IDENTITY (7)
   {
     id: 'athlete-spotlight',
+    referenceImage: '/references/athlete-spotlight-thando.png',
     name: 'Athlete Spotlight Cover',
     category: 'Athlete Identity',
     description: 'Full athlete profile with photo, stats, and quote',
@@ -63,6 +67,7 @@ export const templates: Template[] = [
   },
   {
     id: 'the-squad',
+    referenceImage: '/references/the-squad-intro.png',
     name: 'The Squad - Athlete Card',
     category: 'Athlete Identity',
     description: 'Compact modular athlete intro cards for grid layouts',
@@ -113,6 +118,7 @@ export const templates: Template[] = [
   // BUILD-UP PERFORMANCE (5)
   {
     id: 'ones-to-watch',
+    referenceImage: '/references/ones-to-watch.png',
     name: 'Ones to Watch',
     category: 'Build-Up Performance',
     description: 'Rising star highlight with breakthrough story',
@@ -121,6 +127,7 @@ export const templates: Template[] = [
   },
   {
     id: 'commonwealth-watch',
+    referenceImage: '/references/commonwealth-watch.jpg',
     name: 'Commonwealth Watch',
     category: 'Build-Up Performance',
     description: 'Medal contender tracking with competitive context',
@@ -153,6 +160,7 @@ export const templates: Template[] = [
   // PARTNER STORIES (4)
   {
     id: 'opex-athlete-story',
+    referenceImage: '/references/opex-athlete-story.png',
     name: 'OPEX Athlete Story',
     category: 'Partner Stories',
     description: 'OPEX Operation Excellence sponsored content',
@@ -161,6 +169,7 @@ export const templates: Template[] = [
   },
   {
     id: 'mr-price-then-now',
+    referenceImage: '/references/mr-price-then-now.png',
     name: 'Mr Price: Then & Now',
     category: 'Partner Stories',
     description: 'Mr Price journey storytelling',
@@ -185,6 +194,7 @@ export const templates: Template[] = [
   // COMMUNITY / UTILITY (15)
   {
     id: 'event-preview',
+    referenceImage: '/references/event-preview-rugby.png',
     name: 'Event Preview',
     category: 'Community / Utility',
     description: 'Sport-specific event preview graphics',

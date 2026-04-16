@@ -18,6 +18,7 @@ export default function Studio() {
   const [selectedTemplate, setSelectedTemplate] = useState('')
   const [selectedAthlete, setSelectedAthlete] = useState('')
   const [selectedFormat, setSelectedFormat] = useState<Format>('feed')
+  const [activeReference, setActiveReference] = useState<string | null>(null)
   const [prompt, setPrompt] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [currentImage, setCurrentImage] = useState<string | null>(null)
@@ -61,7 +62,7 @@ export default function Studio() {
   }
 
   const handleGenerate = async () => {
-    if (!template) {
+    if (!template && !activeReference) {
       setError('Select a template first')
       return
     }
@@ -74,9 +75,11 @@ export default function Studio() {
 
     try {
       const format = formatConfig[selectedFormat]
-      let fullPrompt = `${template.prompt}\n\nFormat: ${format.width}x${format.height} (${format.ratio})`
+      let fullPrompt = template 
+        ? `${template.prompt}\n\nFormat: ${format.width}x${format.height} (${format.ratio})`
+        : `Generate a Team South Africa Commonwealth Games Glasgow 2026 graphic (${format.width}x${format.height}, ${format.ratio} aspect ratio) matching the reference style exactly.`;
 
-      if (athlete && template.athleteFields) {
+      if (athlete && template?.athleteFields) {
         const athleteContext = template.athleteFields
           .map(field => {
             const value = athlete[field as keyof typeof athlete]
@@ -89,10 +92,11 @@ export default function Studio() {
       }
 
       if (prompt) {
-        fullPrompt = `${fullPrompt}\n\nUser: ${prompt}`
+        fullPrompt = `${fullPrompt}\n\nUser customization: ${prompt}`
       }
       
-      const referenceImage = template.referenceImage;
+      // Use activeReference if set (from gallery), otherwise fall back to template reference
+      const referenceImage = activeReference || template?.referenceImage;
       const imageUrl = await generateImage(fullPrompt, referenceImage)
       pushImage(imageUrl)
       setMessages(prev => [...prev, { role: 'assistant', text: 'Generated!', image: imageUrl }])
@@ -243,15 +247,33 @@ export default function Studio() {
                 <div key={cat.category} className="mb-8">
                   <h2 className="text-lg font-bold text-sa-green mb-4 tracking-wide">{cat.category}</h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {cat.items.map(item => (
-                      <div
-                        key={item.id}
-                        className="group relative bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer"
-                        onClick={() => {
-                          setCurrentImage(item.path)
-                          pushImage(item.path)
-                        }}
-                      >
+                    {cat.items.map(item => {
+                      // Try to match template by ID or name similarity
+                      const matchedTemplate = templates.find(t => 
+                        t.id === item.id || 
+                        item.id.includes(t.id) ||
+                        t.id.includes(item.id.split('-')[0])
+                      );
+                      
+                      return (
+                        <div
+                          key={item.id}
+                          className="group relative bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer"
+                          onClick={() => {
+                            setCurrentImage(item.path)
+                            pushImage(item.path)
+                            setActiveReference(item.path)
+                            setMode('generate')
+                            if (matchedTemplate) {
+                              setSelectedTemplate(matchedTemplate.id)
+                            }
+                            setMessages(prev => [...prev, {
+                              role: 'assistant',
+                              text: `Loaded template: ${item.name}. Ready to customize — add your details below and click Generate.`
+                            }])
+                          }}
+                        >
+                      
                         <img
                           src={item.path}
                           alt={item.name}
@@ -274,8 +296,9 @@ export default function Studio() {
                         >
                           <Download size={14} />
                         </button>
-                      </div>
-                    ))}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               ))}
@@ -354,6 +377,16 @@ export default function Studio() {
 
           {/* Template Info */}
           <div className="p-4 border-t border-sa-green/20">
+            {activeReference && (
+              <div className="mb-3 p-3 bg-sa-gold/10 rounded border border-sa-gold/40">
+                <div className="flex items-center gap-2 mb-1">
+                  <ImageIcon size={14} className="text-sa-gold" />
+                  <div className="text-xs font-bold text-sa-gold">Reference Template Active</div>
+                </div>
+                <div className="text-xs text-gray-600">AI will match this visual style when generating</div>
+              </div>
+            )}
+            
             {template && (
               <div className="mb-3 p-3 bg-white rounded border border-sa-green/20">
                 <div className="flex items-center gap-2 mb-1">
@@ -382,13 +415,19 @@ export default function Studio() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleGenerate()}
-                placeholder={template ? "Optional: Add specific details..." : "Select a template first..."}
+                placeholder={
+                  activeReference 
+                    ? "Describe your customization (athlete name, sport, stats, etc.)" 
+                    : template 
+                      ? "Optional: Add specific details..." 
+                      : "Select a template first..."
+                }
                 className="flex-1 px-4 py-2 border border-sa-green/30 rounded bg-white text-sm"
-                disabled={loading || !template}
+                disabled={loading || (!template && !activeReference)}
               />
               <button
                 onClick={handleGenerate}
-                disabled={loading || !selectedTemplate}
+                disabled={loading || (!selectedTemplate && !activeReference)}
                 className="px-6 py-2 bg-sa-green text-white rounded font-medium hover:bg-sa-green/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
               >
                 {loading ? (

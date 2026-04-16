@@ -3,7 +3,7 @@ import { templateCategories, templates } from '../data/templates'
 import { generatedTemplates, generatedCategories } from '../data/generatedTemplates'
 import { athletes } from '../data/athletes'
 import { generateImage } from '../lib/openrouter'
-import { Download, Send, User, Image as ImageIcon, Smartphone, Video, Undo, Redo, Sparkles, Archive } from 'lucide-react'
+import { Download, Send, User, Image as ImageIcon, Smartphone, Video, Undo, Redo, Sparkles, Archive, Upload, X } from 'lucide-react'
 
 type Format = 'feed' | 'story' | 'reel';
 
@@ -26,6 +26,8 @@ export default function Studio() {
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const template = templates.find(t => t.id === selectedTemplate)
@@ -119,6 +121,39 @@ export default function Studio() {
 
   const canUndo = historyIndex > 0
   const canRedo = historyIndex < imageHistory.length - 1
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload an image file')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string
+      setUploadedImage(base64)
+      setActiveReference(base64)
+      setCurrentImage(base64)
+      pushImage(base64)
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        text: 'Custom image uploaded as reference. Describe your customization and click Generate.',
+        image: base64
+      }])
+      setMode('generate')
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const clearUploadedImage = () => {
+    setUploadedImage(null)
+    if (activeReference === uploadedImage) {
+      setActiveReference(null)
+    }
+  }
 
   return (
     <div className="h-screen flex flex-col bg-sa-cream">
@@ -379,9 +414,22 @@ export default function Studio() {
           <div className="p-4 border-t border-sa-green/20">
             {activeReference && (
               <div className="mb-3 p-3 bg-sa-gold/10 rounded border border-sa-gold/40">
-                <div className="flex items-center gap-2 mb-1">
-                  <ImageIcon size={14} className="text-sa-gold" />
-                  <div className="text-xs font-bold text-sa-gold">Reference Template Active</div>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon size={14} className="text-sa-gold" />
+                    <div className="text-xs font-bold text-sa-gold">
+                      {uploadedImage ? 'Custom Image Reference' : 'Reference Template Active'}
+                    </div>
+                  </div>
+                  {uploadedImage && (
+                    <button
+                      onClick={clearUploadedImage}
+                      className="p-1 hover:bg-sa-gold/20 rounded transition-colors"
+                      title="Clear uploaded image"
+                    >
+                      <X size={12} className="text-sa-gold" />
+                    </button>
+                  )}
                 </div>
                 <div className="text-xs text-gray-600">AI will match this visual style when generating</div>
               </div>
@@ -411,6 +459,21 @@ export default function Studio() {
             {/* Input */}
             <div className="flex gap-2">
               <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2 border border-sa-green/30 rounded bg-white hover:bg-sa-green/5 transition-colors"
+                title="Upload reference image"
+                disabled={loading}
+              >
+                <Upload size={18} className="text-sa-green" />
+              </button>
+              <input
                 type="text"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
@@ -420,7 +483,7 @@ export default function Studio() {
                     ? "Describe your customization (athlete name, sport, stats, etc.)" 
                     : template 
                       ? "Optional: Add specific details..." 
-                      : "Select a template first..."
+                      : "Select a template or upload an image..."
                 }
                 className="flex-1 px-4 py-2 border border-sa-green/30 rounded bg-white text-sm"
                 disabled={loading || (!template && !activeReference)}
